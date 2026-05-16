@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS-CYBER-RUNNER V3 | HACKER SUITE</title>
+    <style>
+        /* NEON GLOW + MATRIX RAIN ANIMATION */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0f1a, #000000);
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            color: #0f0;
+            overflow-x: hidden;
+            position: relative;
+        }
+        /* Matrix rain effect */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.15;
+            background: repeating-linear-gradient(0deg, #0f0 1px, transparent 2px);
+            animation: matrixScroll 20s linear infinite;
+        }
+        @keyframes matrixScroll {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 30px; }
+        }
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            backdrop-filter: blur(2px);
+        }
+        /* Neon Cards */
+        .neon-card {
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid #0f0;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3), inset 0 0 8px rgba(0,255,0,0.2);
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: all 0.2s ease;
+        }
+        .neon-card:hover {
+            box-shadow: 0 0 25px #0f0, inset 0 0 10px #0f0;
+            transform: translateY(-3px);
+        }
+        h1, h2 {
+            text-shadow: 0 0 8px #0f0;
+            letter-spacing: 2px;
+        }
+        .terminal {
+            background: #000000cc;
+            border: 1px solid #0f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-size: 13px;
+        }
+        .log-line {
+            border-left: 3px solid #0f0;
+            padding-left: 8px;
+            margin: 4px 0;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px);}
+            to { opacity: 1; transform: translateX(0);}
+        }
+        button, .cyber-btn {
+            background: black;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 8px 16px;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0f0;
+            color: black;
+            box-shadow: 0 0 15px #0f0;
+        }
+        input, textarea {
+            background: #111;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 8px;
+            font-family: monospace;
+            width: 100%;
+            margin: 6px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #0f0;
+            padding: 8px;
+            text-align: left;
+        }
+        .status-badge {
+            color: #0f0;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0.5; text-shadow: none; }
+        }
+    </style>
+    <script>
+        // ADVANCED JS FILE HANDLING + REAL-TIME LOGS
+        let eventSource = null;
+
+        function startLogStream() {
+            if (eventSource) eventSource.close();
+            eventSource = new EventSource('/api/logs');
+            eventSource.onmessage = function(e) {
+                const terminal = document.getElementById('logTerminal');
+                const div = document.createElement('div');
+                div.className = 'log-line';
+                div.textContent = e.data;
+                terminal.appendChild(div);
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+            eventSource.onerror = () => console.error("SSE error");
+        }
+
+        async function fetchSystemStatus() {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            document.getElementById('cpuStat').innerHTML = `🧠 CPU: ${data.diagnostics.cpu_percent}% | RAM: ${data.diagnostics.ram_percent}%`;
+            document.getElementById('vaultStat').innerHTML = `📂 Vault scripts: ${data.vault.active_scripts} running | ${data.vault.total_scripts} total`;
+            document.getElementById('taskStat').innerHTML = `⚙️ Active task loops: ${data.active_tasks.length}`;
+        }
+
+        async function listFiles() {
+            const res = await fetch('/api/files');
+            const files = await res.json();
+            const tbody = document.querySelector('#fileTable tbody');
+            tbody.innerHTML = '';
+            files.forEach(f => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = f.name;
+                row.insertCell(1).textContent = (f.size / 1024).toFixed(2) + ' KB';
+                row.insertCell(2).innerHTML = `<button onclick="editFile('${f.name}')">✏️ Edit</button> <button onclick="deleteFile('${f.name}')">🗑️ Del</button>`;
+            });
+        }
+
+        async function uploadFile() {
+            const input = document.getElementById('fileUpload');
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            await fetch('/api/files', { method: 'POST', body: formData });
+            listFiles();
+            input.value = '';
+        }
+
+        async function deleteFile(name) {
+            if(confirm(`Delete ${name}?`)) {
+                await fetch('/api/files', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({filename: name}) });
+                listFiles();
+            }
+        }
+
+        async function editFile(name) {
+            const content = prompt(`Edit ${name} – enter new content:`);
+            if(content !== null) {
+                await fetch('/api/files', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({filename: name, content: content}) });
+                listFiles();
+            }
+        }
+
+        async function runVaultScript() {
+            const script = prompt("Enter script name from VAULT folder:");
+            if(script) {
+                const res = await fetch('/api/run_vault_script', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({script: script}) });
+                const data = await res.json();
+                alert(`Result: ${data.result || data.error}`);
+            }
+        }
+
+        setInterval(fetchSystemStatus, 3000);
+        window.onload = () => {
+            startLogStream();
+            listFiles();
+            fetchSystemStatus();
+        };
+    </script>
+</head>
+<body>
+<div class="matrix-bg"></div>
+<div class="container">
+    <div class="neon-card">
+        <h1>💀 NEXUS-CYBER-RUNNER V3 💀</h1>
+        <p>⚡ Heavy Texture · Multi‑Threaded · Auto Dependency ⚡</p>
+        <div><span class="status-badge">● SYSTEM ACTIVE</span> &nbsp; <span id="cpuStat"></span> &nbsp; <span id="vaultStat"></span> &nbsp; <span id="taskStat"></span></div>
+    </div>
+
+    <div class="neon-card">
+        <h2>🖥️ REAL‑TIME TERMINAL LOG</h2>
+        <div id="logTerminal" class="terminal"></div>
+    </div>
+
+    <div class="neon-card">
+        <h2>📁 VAULT FILE MANAGER (CYBERPUNK EDITION)</h2>
+        <input type="file" id="fileUpload" />
+        <button onclick="uploadFile()">⬆️ UPLOAD TO VAULT</button>
+        <button onclick="listFiles()">🔄 REFRESH</button>
+        <button onclick="runVaultScript()">🚀 EXECUTE VAULT SCRIPT</button>
+        <table id="fileTable">
+            <thead><tr><th>Filename</th><th>Size</th><th>Actions</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div class="neon-card">
+        <h2>⚙️ SYSTEM COMMANDS</h2>
+        <button onclick="fetchSystemStatus()">🔍 DIAGNOSTICS</button>
+        <button onclick="location.reload()">🔄 REBOOT DASHBOARD</button>
+    </div>
+</div>
+</body>
+</html>

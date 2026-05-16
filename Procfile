@@ -1,0 +1,1 @@
+web: gunicorn cyber_core:app --workers 3 --threads 6 --timeout 120
