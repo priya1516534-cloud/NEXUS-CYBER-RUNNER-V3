@@ -5,3 +5,4 @@ requests==2.31.0
 pyTelegramBotAPI==4.15.0
 beautifulsoup4==4.12.2
 python-dotenv
+setuptools
