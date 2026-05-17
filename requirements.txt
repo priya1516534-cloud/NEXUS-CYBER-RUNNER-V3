@@ -6,3 +6,4 @@ pyTelegramBotAPI==4.15.0
 beautifulsoup4==4.12.2
 python-dotenv
 setuptools
+watchdog
